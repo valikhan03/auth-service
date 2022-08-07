@@ -4,9 +4,10 @@ import (
 	"auth-service/models"
 	"auth-service/pb"
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"time"
-	"net/http"
 )
 
 type Service struct {
@@ -33,11 +34,12 @@ type IRepository interface {
 }
 
 func (s *Service) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUpResponse, error) {
-	var res pb.SignUpResponse
-
 	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
-		//ADD HERE ERROR HANDLER
+		return &pb.SignUpResponse{
+			Status: http.StatusBadRequest,
+			Error: fmt.Sprintf("Invalid birth date: %v", err),
+		}, err
 	}
 
 	user := models.User{
@@ -50,33 +52,38 @@ func (s *Service) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUp
 	}
 	err = s.repository.AddUser(&user)
 	if err != nil {
-		return nil, err
+		return &pb.SignUpResponse{
+			Status: http.StatusInternalServerError,
+			Error: "Internal Server Error. Try again.",
+		}, err
 	}
 
-	return &res, err
+	return &pb.SignUpResponse{
+		Status: http.StatusCreated,
+	}, nil
 }
 
 func (s *Service) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
 	var res pb.SignInResponse
 	user, err := s.repository.GetUser(req.Email)
 	if err != nil {
-		res.Status = http.StatusUnauthorized
+		res.Status = http.StatusBadRequest
 		res.Error = models.INVALID_USER_CREDS_ERR.Error()
-		return &res, nil
+		return &res, err
 	}
 
 	user.CheckPassword(req.Password)
 	if err != nil {
-		res.Status = http.StatusUnauthorized
+		res.Status = http.StatusBadRequest
 		res.Error = models.INVALID_USER_CREDS_ERR.Error()
-		return &res, nil
+		return &res, err
 	}
 
 	token, err := s.jwt.GenerateToken(user.Email)
 	if err != nil {
 		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
-		return &res, nil
+		return &res, err
 	}
 
 	res.Status = http.StatusOK

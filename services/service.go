@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"time"
+	"net/http"
 )
 
 type Service struct {
@@ -59,26 +60,26 @@ func (s *Service) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignIn
 	var res pb.SignInResponse
 	user, err := s.repository.GetUser(req.Email)
 	if err != nil {
-		res.Status = "error"
+		res.Status = http.StatusUnauthorized
 		res.Error = models.INVALID_USER_CREDS_ERR.Error()
 		return &res, nil
 	}
 
 	user.CheckPassword(req.Password)
 	if err != nil {
-		res.Status = "error"
+		res.Status = http.StatusUnauthorized
 		res.Error = models.INVALID_USER_CREDS_ERR.Error()
 		return &res, nil
 	}
 
 	token, err := s.jwt.GenerateToken(user.Email)
 	if err != nil {
-		res.Status = "error"
+		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
 		return &res, nil
 	}
 
-	res.Status = "signed in"
+	res.Status = http.StatusOK
 	res.Token = token
 
 	return &res, nil
@@ -88,19 +89,19 @@ func (s *Service) Validate(ctx context.Context, req *pb.ValidateRequest) (*pb.Va
 	var res pb.ValidateResponse
 	claims, err := s.jwt.ValidateToken(req.Token)
 	if err != nil {
-		res.Status = "error"
+		res.Status = http.StatusUnauthorized
 		res.Error = err.Error()
 		return &res, nil
 	}
 
 	user, err := s.repository.GetUser(claims.Email)
 	if err != nil {
-		res.Status = "error"
+		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
 		return &res, nil
 	}
 
-	res.Status = "validated"
+	res.Status = http.StatusOK
 	res.UserID = user.ID
 
 	return &res, nil

@@ -18,11 +18,12 @@ type Service struct {
 func NewService(repository IRepository) *Service {
 	secret_key := os.Getenv("")
 	exp_time := 24 * time.Hour
+	
 	return &Service{
 		repository: repository,
 		jwt: &models.JWTWrapper{
 			SecretKey: secret_key,
-			ExpirationTime: int64(exp_time),
+			ExpirationTime: exp_time,
 			Issuer: "auth service",
 		},
 	}

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -12,7 +11,7 @@ import (
 type JWTWrapper struct {
 	SecretKey      string
 	Issuer         string
-	ExpirationTime int64
+	ExpirationTime time.Duration
 }
 
 type JWTClaims struct {
@@ -25,7 +24,7 @@ func (j *JWTWrapper) GenerateToken(email string) (signedToken string, err error)
 		Email: email,
 		StandardClaims: jwt.StandardClaims{
 			Issuer: j.Issuer,
-			ExpiresAt: j.ExpirationTime,
+			ExpiresAt: time.Now().Add(j.ExpirationTime).Unix(),
 		},
 	}
 
@@ -41,12 +40,7 @@ func (j *JWTWrapper) ValidateToken(signedToken string) (claims *JWTClaims, err e
 			return nil, errors.New(fmt.Sprintf("Unexpected signing method: %v", t.Header["alg"]))
 		}
 
-		key, err := base64.URLEncoding.DecodeString(j.SecretKey)
-		if err != nil{
-			return nil, errors.New(fmt.Sprintf("Unable to decode secret key: %x", err))
-		}
-
-		return key, nil
+		return []byte(j.SecretKey), nil
 	})
 
 	if err != nil{

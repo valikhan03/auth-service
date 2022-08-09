@@ -99,14 +99,14 @@ func (s *Service) Validate(ctx context.Context, req *pb.ValidateRequest) (*pb.Va
 	if err != nil {
 		res.Status = http.StatusUnauthorized
 		res.Error = err.Error()
-		return &res, nil
+		return &res, err
 	}
 
 	user, err := s.repository.GetUser(claims.Email)
 	if err != nil {
 		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
-		return &res, nil
+		return &res, err
 	}
 
 	res.Status = http.StatusOK

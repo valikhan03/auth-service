@@ -111,6 +111,8 @@ func (s *AuthService) Validate(ctx context.Context, req *pb.ValidateRequest) (*p
 
 	res.Status = http.StatusOK
 	res.UserID = user.ID
+	res.Email = user.Email
+	res.FullName = user.FullName
 
 	return &res, nil
 }

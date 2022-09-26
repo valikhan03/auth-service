@@ -2,7 +2,7 @@ package services
 
 import (
 	"auth-service/models"
-	"auth-service/pb"
+	pb "auth-service/pb/auth-service"
 	"context"
 	"errors"
 	"fmt"
@@ -19,7 +19,7 @@ import (
 func dialer() func(context.Context, string) (net.Conn, error) {
 	listener := bufconn.Listen(1024 * 1024)
 	server := grpc.NewServer()
-	service :=  &Service{
+	service :=  &AuthService{
 		repository: &testRepository{},
 		jwt: &models.JWTWrapper{
 			SecretKey: "test-secret-key",

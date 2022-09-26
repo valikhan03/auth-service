@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"auth-service/db"
-	"auth-service/pb"
+	pb_auth "auth-service/pb/auth-service"
 	"auth-service/repositories"
 	"auth-service/services"
 	"fmt"
@@ -22,7 +22,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	pb.RegisterAuthServiceServer(grpcServer, service)
+	pb_auth.RegisterAuthServiceServer(grpcServer, service)
 
 	listener, err := net.Listen("tcp", os.Getenv(fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))))
 	if err != nil{

@@ -14,9 +14,13 @@ func TestGenerateAndValidateToken(t *testing.T) {
 		ExpirationTime: 100 * time.Second,
 	}
 
-	test_email := "test@email.com"
+	test_user := User{
+		Email: "test@email.com",
+		ID: 4654115,
+		FullName: "Zhaqsylyq Zhaqsylyq",
+	}
 
-	token, err := wrapper.GenerateToken(test_email)
+	token, err := wrapper.GenerateToken(test_user)
 	require.NoError(t, err)
 
 	require.Greater(t, len(token), 0)
@@ -26,7 +30,9 @@ func TestGenerateAndValidateToken(t *testing.T) {
 
 	require.NotNil(t, claims)
 
-	require.Equal(t, test_email, claims.Email)
+	require.Equal(t, test_user.Email, claims.Email)
+	require.Equal(t, test_user.ID, claims.ID)
+	require.Equal(t, test_user.FullName, claims.FullName)
 }
 
 func TestExpiredToken(t *testing.T) {
@@ -36,9 +42,13 @@ func TestExpiredToken(t *testing.T) {
 		ExpirationTime: 10 * time.Second,
 	}
 
-	test_email := "test@email.com"
+	test_user := User{
+		Email: "test@email.com",
+		ID: 4654115,
+		FullName: "Zhaqsylyq Zhaqsylyq",
+	}
 
-	token, err := wrapper.GenerateToken(test_email)
+	token, err := wrapper.GenerateToken(test_user)
 	require.NoError(t, err)
 
 	time.Sleep(11 * time.Second)

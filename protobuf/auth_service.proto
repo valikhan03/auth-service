@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package protobuf;
 
-option go_package = "/pb";
+option go_package = "/pb/auth-service";
 
 
 service AuthService {

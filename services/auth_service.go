@@ -2,7 +2,7 @@ package services
 
 import (
 	"auth-service/models"
-	"auth-service/pb"
+	pb "auth-service/pb/auth-service"
 	"context"
 	"fmt"
 	"net/http"
@@ -10,16 +10,16 @@ import (
 	"time"
 )
 
-type Service struct {
+type AuthService struct {
 	repository IRepository
 	jwt        *models.JWTWrapper
 }
 
-func NewService(repository IRepository) *Service {
-	secret_key := os.Getenv("")
+func NewService(repository IRepository) *AuthService {
+	secret_key := os.Getenv("SECRET-KEY")
 	exp_time := 24 * time.Hour
 	
-	return &Service{
+	return &AuthService{
 		repository: repository,
 		jwt: &models.JWTWrapper{
 			SecretKey: secret_key,
@@ -34,7 +34,7 @@ type IRepository interface {
 	GetUser(email string) (*models.User, error)
 }
 
-func (s *Service) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUpResponse, error) {
+func (s *AuthService) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUpResponse, error) {
 	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
 		return &pb.SignUpResponse{
@@ -64,7 +64,7 @@ func (s *Service) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUp
 	}, nil
 }
 
-func (s *Service) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
+func (s *AuthService) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignInResponse, error) {
 	var res pb.SignInResponse
 	user, err := s.repository.GetUser(req.Email)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *Service) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignIn
 		return &res, err
 	}
 
-	token, err := s.jwt.GenerateToken(user.Email)
+	token, err := s.jwt.GenerateToken(*user)
 	if err != nil {
 		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
@@ -93,7 +93,7 @@ func (s *Service) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.SignIn
 	return &res, nil
 }
 
-func (s *Service) Validate(ctx context.Context, req *pb.ValidateRequest) (*pb.ValidateResponse, error) {
+func (s *AuthService) Validate(ctx context.Context, req *pb.ValidateRequest) (*pb.ValidateResponse, error) {
 	var res pb.ValidateResponse
 	claims, err := s.jwt.ValidateToken(req.Token)
 	if err != nil {

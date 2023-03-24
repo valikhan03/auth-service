@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/valikhan03/tool"
 )
 
 type AuthService struct {
@@ -32,6 +34,8 @@ func NewService(repository IRepository) *AuthService {
 type IRepository interface {
 	AddUser(user *models.User) error
 	GetUser(email string) (*models.User, error)
+	IsParticipant(auctionid string, userid int64) bool
+	IsCreator(auctionid string, userid int64) bool
 }
 
 func (s *AuthService) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUpResponse, error) {
@@ -107,6 +111,27 @@ func (s *AuthService) Validate(ctx context.Context, req *pb.ValidateRequest) (*p
 		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
 		return &res, err
+	}
+
+	switch req.Service {
+	case tool.AUC_SRVC:
+		if !s.repository.IsCreator(req.GetAUC_SRVC_DATA().AuctionId, user.ID) {
+			res.Status = http.StatusUnauthorized
+			res.Error = "Not enough rights"
+			return &res, err
+		}
+	case tool.RUN_SRVC:
+		if !s.repository.IsParticipant(req.GetRUN_SRVC_DATA().AuctionId, user.ID) {
+			res.Status = http.StatusUnauthorized
+			res.Error = "Not enough rights"
+			return &res, err
+		}
+	case tool.MNG_SRVC:
+		if !s.repository.IsCreator(req.GetAUC_SRVC_DATA().AuctionId, user.ID) {
+			res.Status = http.StatusUnauthorized
+			res.Error = "Not enough rights"
+			return &res, err
+		}
 	}
 
 	res.Status = http.StatusOK

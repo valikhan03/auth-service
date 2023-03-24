@@ -64,3 +64,46 @@ func (r *Repository) GetUserName(id int64) (string, error) {
 
 	return u.Fullname, nil
 }
+
+
+func (r *Repository) IsCreator(auctionid string, userid int64) bool {
+	var v_userid int64
+	query := `select organizer_id from tb_auctions where id=$1`
+	rows, err := r.db.DB.Query(query, auctionid)
+	if err != nil {
+		return false
+	}
+
+	for rows.Next() {
+		err = rows.Scan(v_userid)
+		if err != nil{
+			return false
+		}
+	}
+
+	if v_userid == userid {
+		return true
+	}
+
+	return false
+}
+
+
+func(r *Repository) IsParticipant(auctionid string, userid int64) bool {
+	res := false
+	query := `select 
+		case when exists(select 1 from tb_participants where auction_id=$1 and user_id=$2) 
+			then TRUE 
+			else FALSE 
+		end
+		from dual`
+	rows, err := r.db.DB.Query(query, auctionid, userid)
+	if err != nil{
+		return res
+	}
+	for rows.Next() {
+		rows.Scan(res)
+	}
+
+	return res
+}

@@ -5,6 +5,7 @@ import (
 	pb "auth-service/pb/auth-service"
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -20,13 +21,13 @@ type AuthService struct {
 func NewService(repository IRepository) *AuthService {
 	secret_key := os.Getenv("SECRET-KEY")
 	exp_time := 24 * time.Hour
-	
+
 	return &AuthService{
 		repository: repository,
 		jwt: &models.JWTWrapper{
-			SecretKey: secret_key,
+			SecretKey:      secret_key,
 			ExpirationTime: exp_time,
-			Issuer: "auth service",
+			Issuer:         "auth service",
 		},
 	}
 }
@@ -39,27 +40,26 @@ type IRepository interface {
 }
 
 func (s *AuthService) SignUp(ctx context.Context, req *pb.SignUpRequest) (*pb.SignUpResponse, error) {
-	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
+	var res pb.SignUpResponse
+	user, err := ValidateSignUp(req)
 	if err != nil {
 		return &pb.SignUpResponse{
 			Status: http.StatusBadRequest,
-			Error: fmt.Sprintf("Invalid birth date: %v", err),
-		}, err
+			Error:  fmt.Sprintf("Validation failed: %v", err),
+		}, nil
 	}
 
-	user := models.User{
-		ID:        4,
-		FullName:  req.FullName,
-		Email:     req.Email,
-		Password:  req.Password,
-		PhoneNum:  req.PhoneNum,
-		BirthDate: birthDate,
+	err = user.HashPassword()
+	if err != nil {
+		res.Status = http.StatusInternalServerError
+		res.Error = models.ERR_500.Error()
+		return &res, err
 	}
-	err = s.repository.AddUser(&user)
+	err = s.repository.AddUser(user)
 	if err != nil {
 		return &pb.SignUpResponse{
 			Status: http.StatusInternalServerError,
-			Error: "Internal Server Error. Try again.",
+			Error:  "Internal Server Error. Try again.",
 		}, err
 	}
 
@@ -72,6 +72,7 @@ func (s *AuthService) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.Si
 	var res pb.SignInResponse
 	user, err := s.repository.GetUser(req.Email)
 	if err != nil {
+		log.Println(err)
 		res.Status = http.StatusBadRequest
 		res.Error = models.INVALID_USER_CREDS_ERR.Error()
 		return &res, err
@@ -79,6 +80,7 @@ func (s *AuthService) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.Si
 
 	user.CheckPassword(req.Password)
 	if err != nil {
+		log.Println(err)
 		res.Status = http.StatusBadRequest
 		res.Error = models.INVALID_USER_CREDS_ERR.Error()
 		return &res, err
@@ -86,6 +88,7 @@ func (s *AuthService) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.Si
 
 	token, err := s.jwt.GenerateToken(*user)
 	if err != nil {
+		log.Println(err)
 		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
 		return &res, err
@@ -93,6 +96,7 @@ func (s *AuthService) SignIn(ctx context.Context, req *pb.SignInRequest) (*pb.Si
 
 	res.Status = http.StatusOK
 	res.Token = token
+	res.User_ID = int32(user.ID)
 
 	return &res, nil
 }
@@ -101,6 +105,7 @@ func (s *AuthService) Validate(ctx context.Context, req *pb.ValidateRequest) (*p
 	var res pb.ValidateResponse
 	claims, err := s.jwt.ValidateToken(req.Token)
 	if err != nil {
+		log.Printf("ValidateToken: %v", err)
 		res.Status = http.StatusUnauthorized
 		res.Error = err.Error()
 		return &res, err
@@ -108,6 +113,7 @@ func (s *AuthService) Validate(ctx context.Context, req *pb.ValidateRequest) (*p
 
 	user, err := s.repository.GetUser(claims.Email)
 	if err != nil {
+		log.Printf("GetUser: %v", err)
 		res.Status = http.StatusInternalServerError
 		res.Error = models.ERR_500.Error()
 		return &res, err
@@ -141,4 +147,3 @@ func (s *AuthService) Validate(ctx context.Context, req *pb.ValidateRequest) (*p
 
 	return &res, nil
 }
-

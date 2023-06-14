@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"auth-service/db"
@@ -24,13 +24,14 @@ func main() {
 
 	pb_auth.RegisterAuthServiceServer(grpcServer, service)
 
-	listener, err := net.Listen("tcp", os.Getenv(fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))))
-	if err != nil{
-		log.Fatal(err)
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT")))
+	if err != nil {
+		log.Fatalf("Listener error %v", err)
 	}
 
+	fmt.Println("Auth service started")
 	err = grpcServer.Serve(listener)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("gRPC Serve error: %v", err)
 	}
 }

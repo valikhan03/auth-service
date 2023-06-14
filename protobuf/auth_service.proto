@@ -35,6 +35,7 @@ message SignInResponse {
     int32 Status = 1;
     string Error = 2; 
     string Token = 3;
+    int32  User_ID = 4;
 };
 
 message AUC_SRVC_DATA {

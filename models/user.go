@@ -1,22 +1,23 @@
 package models
 
 import (
-	"time"
+	//"time"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID        int64
-	FullName  string
-	Email     string
-	Password  string
-	PhoneNum  string
-	BirthDate time.Time
+	ID        int64     `db:"id"`
+	FullName  string    `db:"full_name"`
+	Email     string    `db:"email"`
+	Password  string    `db:"password"`
+	PhoneNum  string    `db:"phone_num"`
+	//BirthDate time.Time `db:"birth_date"`
 }
 
 func (u *User) HashPassword() error {
 	bytes_pass, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -24,8 +25,11 @@ func (u *User) HashPassword() error {
 	return nil
 }
 
-
 func (u *User) CheckPassword(providedPassword string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(providedPassword))
+	bytes_pass, err := bcrypt.GenerateFromPassword([]byte(providedPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), bytes_pass)
 	return err
 }

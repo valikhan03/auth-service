@@ -27,11 +27,11 @@ func (r *Repository) AddUser(user *models.User) error {
 	}
 
 	query = `
-		INSERT INTO tb_users (id, full_name, email, password, phone_num, birth_date)
+		INSERT INTO tb_users (id, full_name, email, password, phone_num)
 			VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
-	_, err = r.db.Exec(query, user.ID, user.FullName, user.Email, user.Password, user.PhoneNum, user.BirthDate)
+	_, err = r.db.Exec(query, user.ID, user.FullName, user.Email, user.Password, user.PhoneNum)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (r *Repository) AddUser(user *models.User) error {
 }
 
 func (r *Repository) GetUser(email string) (*models.User, error) {
-	query := `SELECT * FROM tb_users WHERE email=$1`
+	query := `SELECT id, full_name, email, password, phone_num FROM tb_users WHERE email=$1`
 	var user models.User
 	err := r.db.Get(&user, query, email)
 	if err != nil {
@@ -50,21 +50,19 @@ func (r *Repository) GetUser(email string) (*models.User, error) {
 	return &user, nil
 }
 
-
-type username struct{
+type username struct {
 	Fullname string
 }
 
 func (r *Repository) GetUserName(id int64) (string, error) {
 	var u username
 	err := r.db.Get(&u, "SELECT full_name FROM tb_users WHERE id=$1", id)
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 
 	return u.Fullname, nil
 }
-
 
 func (r *Repository) IsCreator(auctionid string, userid int64) bool {
 	var v_userid int64
@@ -76,7 +74,7 @@ func (r *Repository) IsCreator(auctionid string, userid int64) bool {
 
 	for rows.Next() {
 		err = rows.Scan(v_userid)
-		if err != nil{
+		if err != nil {
 			return false
 		}
 	}
@@ -88,8 +86,7 @@ func (r *Repository) IsCreator(auctionid string, userid int64) bool {
 	return false
 }
 
-
-func(r *Repository) IsParticipant(auctionid string, userid int64) bool {
+func (r *Repository) IsParticipant(auctionid string, userid int64) bool {
 	res := false
 	query := `select 
 		case when exists(select 1 from tb_participants where auction_id=$1 and user_id=$2) 
@@ -98,7 +95,7 @@ func(r *Repository) IsParticipant(auctionid string, userid int64) bool {
 		end
 		from dual`
 	rows, err := r.db.DB.Query(query, auctionid, userid)
-	if err != nil{
+	if err != nil {
 		return res
 	}
 	for rows.Next() {
